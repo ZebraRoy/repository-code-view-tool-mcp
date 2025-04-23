@@ -7,7 +7,6 @@
     "type": "git",
     "url": "git+https://github.com/ZebraRoy/repository-code-view-tool-mcp.git"
   },
-  "main": "index.js",
   "bin": {
     "repository-code-view-tool-mcp": "dist/index.js"
   },

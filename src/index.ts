@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod"
@@ -16,10 +18,10 @@ const server = new McpServer({
 
 server.tool(
   "list-files",
-  "List all files in the repository that match the given condition. We support glob pattern, all changed files, all staged files and last commit files.",
+  "List all files in the repository that match the given condition. We support glob pattern, all changed files, all staged files",
   {
     root: z.string().describe("The root directory of the repository"),
-    mode: z.enum(["glob", "changed", "staged", "last-commit"]).describe("The mode for listing files: 'glob', 'changed', 'staged', or 'last-commit'"),
+    mode: z.enum(["glob", "changed", "staged"]).describe("The mode for listing files: 'glob', 'changed', 'staged'"),
     glob: z.string().optional().describe("The glob pattern to match files against (required if mode is 'glob')"),
   },
   async ({ root, mode, glob }: { root: string, mode: ListFilesMode, glob?: string }) => {
@@ -43,10 +45,9 @@ server.tool(
     filePath: z.string().describe("The relative path to the file in the repository"),
     token: z.number().describe("The maximum number of tokens to return of the final content"),
     startLine: z.number().optional().describe("The start line of the content to return"),
-    isLastCommit: z.boolean().optional().describe("Whether to return the content of the last commit"),
   },
-  async ({ root, filePath, token, startLine, isLastCommit }: { root: string, filePath: string, token: number, startLine?: number, isLastCommit?: boolean }) => {
-    const { content, endLine, isEnded } = await getFileContent(root, filePath, token, startLine, isLastCommit)
+  async ({ root, filePath, token, startLine }: { root: string, filePath: string, token: number, startLine?: number }) => {
+    const { content, endLine, isEnded } = await getFileContent(root, filePath, token, startLine)
     return {
       content: [
         {

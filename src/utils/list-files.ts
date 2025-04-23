@@ -3,7 +3,7 @@ import { simpleGit } from "simple-git"
 import binaryExtensions from "binary-extensions"
 import path from "path"
 
-export type ListFilesMode = "glob" | "changed" | "staged" | "last-commit"
+export type ListFilesMode = "glob" | "changed" | "staged"
 
 function filterUnique(file: string, index: number, self: string[]) {
   return self.indexOf(file) === index
@@ -24,7 +24,7 @@ function normalizeFilePath(files: string[]) {
 }
 
 const listMethodMap: Record<ListFilesMode, (root: string, globPattern?: string) => Promise<string[]>> = {
-  "glob": async (root: string, globPattern?: string) => {
+  glob: async (root: string, globPattern?: string) => {
     if (!globPattern) {
       throw new Error("globPattern is required")
     }
@@ -36,7 +36,7 @@ const listMethodMap: Record<ListFilesMode, (root: string, globPattern?: string) 
     )
     return normalizeFilePath(globResult)
   },
-  "changed": async (root: string) => {
+  changed: async (root: string) => {
     const git = simpleGit({
       baseDir: root,
     })
@@ -46,20 +46,13 @@ const listMethodMap: Record<ListFilesMode, (root: string, globPattern?: string) 
     const notAddedFiles = status.not_added
     return normalizeFilePath([...changedFiles, ...addedFiles, ...notAddedFiles])
   },
-  "staged": async (root: string) => {
+  staged: async (root: string) => {
     const git = simpleGit({
       baseDir: root,
     })
     const status = await git.status()
     const stagedFiles = status.staged
     return normalizeFilePath(stagedFiles)
-  },
-  "last-commit": async (root: string) => {
-    const git = simpleGit({
-      baseDir: root,
-    })
-    const lastCommitFileList = await git.show(["--name-only", "--pretty=format:"])
-    return normalizeFilePath(lastCommitFileList.split("\n"))
   },
 }
 
