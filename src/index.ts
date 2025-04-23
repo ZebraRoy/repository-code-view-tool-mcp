@@ -6,8 +6,8 @@ import { z } from "zod"
 import { listFiles, ListFilesMode } from "./utils/list-files.js"
 
 const server = new McpServer({
-  name: "RepositoryCodeViewTool",
-  description: "View the code of a repository.",
+  name: "ReviewTool",
+  description: "Provide tools to help agents review code.",
   version: "0.1.0",
   capabilities: {
     resources: {},
