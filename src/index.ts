@@ -1,0 +1,47 @@
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
+import { z } from "zod"
+import { listFiles, ListFilesMode } from "./utils/list-files.js"
+
+const server = new McpServer({
+  name: "RepositoryCodeViewTool",
+  description: "View the code of a repository.",
+  version: "0.1.0",
+  capabilities: {
+    resources: {},
+    tools: {},
+  },
+})
+
+server.tool(
+  "list-files",
+  "List all files in the repository that match the given condition. We support glob pattern, all changed files, all staged files and last commit files.",
+  {
+    root: z.string().describe("The root directory of the repository"),
+    mode: z.enum(["glob", "changed", "staged", "last-commit"]).describe("The mode for listing files: 'glob', 'changed', 'staged', or 'last-commit'"),
+    glob: z.string().optional().describe("The glob pattern to match files against (required if mode is 'glob')"),
+  },
+  async ({ root, mode, glob }: { root: string, mode: ListFilesMode, glob?: string }) => {
+    const files = await listFiles(root, mode, glob)
+    return {
+      content: [
+        {
+          type: "text",
+          text: files.join("\n"),
+        },
+      ],
+    }
+  },
+)
+
+async function main() {
+  const transport = new StdioServerTransport()
+  await server.connect(transport)
+  console.log("RepositoryCodeViewTool MCP server is running on stdio")
+}
+
+main()
+  .catch((error) => {
+    console.error("Fatal error in main():", error)
+    process.exit(1)
+  })
