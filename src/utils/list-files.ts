@@ -2,6 +2,8 @@ import { glob } from "glob"
 import { simpleGit } from "simple-git"
 import binaryExtensions from "binary-extensions"
 import path from "path"
+import fs from "fs"
+import ignore from "ignore"
 
 export type ListFilesMode = "glob" | "changed" | "staged"
 
@@ -19,8 +21,33 @@ function filterEmptyFile(file: string) {
   return file.trim() !== ""
 }
 
-function normalizeFilePath(files: string[]) {
-  return files.filter(filterBinaryFile).filter(filterUnique).filter(filterEmptyFile)
+let ig: ReturnType<typeof ignore> | null = null
+let igRoot: string | null = null
+function getIgnoreInstance(root: string) {
+  if (ig && igRoot === root) return ig
+  const gitignorePath = path.join(root, ".gitignore")
+  let patterns = ""
+  try {
+    patterns = fs.readFileSync(gitignorePath, "utf8")
+  }
+  catch (_e) {
+    // no .gitignore, ignore nothing
+  }
+  ig = ignore().add(patterns)
+  igRoot = root
+  return ig
+}
+
+function normalizeFilePath(files: string[], root?: string) {
+  let filtered = files
+    .filter(filterBinaryFile)
+    .filter(filterUnique)
+    .filter(filterEmptyFile)
+  if (root) {
+    const ig = getIgnoreInstance(root)
+    filtered = ig.filter(filtered)
+  }
+  return filtered
 }
 
 const listMethodMap: Record<ListFilesMode, (root: string, globPattern?: string) => Promise<string[]>> = {
@@ -34,7 +61,7 @@ const listMethodMap: Record<ListFilesMode, (root: string, globPattern?: string) 
         cwd: root,
       },
     )
-    return normalizeFilePath(globResult)
+    return normalizeFilePath(globResult, root)
   },
   changed: async (root: string) => {
     const git = simpleGit({
@@ -44,7 +71,7 @@ const listMethodMap: Record<ListFilesMode, (root: string, globPattern?: string) 
     const changedFiles = status.modified
     const addedFiles = status.created
     const notAddedFiles = status.not_added
-    return normalizeFilePath([...changedFiles, ...addedFiles, ...notAddedFiles])
+    return normalizeFilePath([...changedFiles, ...addedFiles, ...notAddedFiles], root)
   },
   staged: async (root: string) => {
     const git = simpleGit({
@@ -52,7 +79,7 @@ const listMethodMap: Record<ListFilesMode, (root: string, globPattern?: string) 
     })
     const status = await git.status()
     const stagedFiles = status.staged
-    return normalizeFilePath(stagedFiles)
+    return normalizeFilePath(stagedFiles, root)
   },
 }
 
