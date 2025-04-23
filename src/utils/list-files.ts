@@ -28,7 +28,6 @@ const listMethodMap: Record<ListFilesMode, (root: string, globPattern?: string) 
     if (!globPattern) {
       throw new Error("globPattern is required")
     }
-    console.log("globPattern", globPattern, root)
     const globResult = await glob(
       globPattern,
       {
