@@ -1,14 +1,14 @@
 {
-  "name": "repository-code-view-tool-mcp",
+  "name": "review-toolkit-mcp",
   "version": "0.1.0",
-  "description": "Repository Code View Tool MCP",
+  "description": "Review Toolkit MCP",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZebraRoy/repository-code-view-tool-mcp.git"
+    "url": "git+https://github.com/ZebraRoy/review-toolkit-mcp.git"
   },
   "bin": {
-    "repository-code-view-tool-mcp": "dist/index.js"
+    "review-toolkit-mcp": "dist/index.js"
   },
   "scripts": {
     "test": "vitest run",
@@ -21,7 +21,7 @@
   "keywords": [
     "modelcontextprotocol",
     "mcp",
-    "repository-code-view-tool-mcp"
+    "review-toolkit-mcp"
   ],
   "author": "ZebraRoy",
   "license": "MIT",
@@ -29,9 +29,9 @@
     "dist"
   ],
   "bugs": {
-    "url": "https://github.com/ZebraRoy/repository-code-view-tool-mcp/issues"
+    "url": "https://github.com/ZebraRoy/review-toolkit-mcp/issues"
   },
-  "homepage": "https://github.com/ZebraRoy/repository-code-view-tool-mcp#readme",
+  "homepage": "https://github.com/ZebraRoy/review-toolkit-mcp#readme",
   "packageManager": "pnpm@10.7.1",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.10.2",

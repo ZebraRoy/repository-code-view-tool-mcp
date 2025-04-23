@@ -4,7 +4,6 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod"
 import { listFiles, ListFilesMode } from "./utils/list-files.js"
-import { getFileContent } from "./utils/file-content.js"
 
 const server = new McpServer({
   name: "RepositoryCodeViewTool",
@@ -31,36 +30,6 @@ server.tool(
         {
           type: "text",
           text: files.join("\n"),
-        },
-      ],
-    }
-  },
-)
-
-server.tool(
-  "get-file-content",
-  "Get the content of a file in the repository.",
-  {
-    root: z.string().describe("The root directory of the repository"),
-    filePath: z.string().describe("The relative path to the file in the repository"),
-    token: z.number().describe("The maximum number of tokens to return of the final content"),
-    startLine: z.number().optional().describe("The start line of the content to return"),
-  },
-  async ({ root, filePath, token, startLine }: { root: string, filePath: string, token: number, startLine?: number }) => {
-    const { content, endLine, isEnded } = await getFileContent(root, filePath, token, startLine)
-    return {
-      content: [
-        {
-          type: "text",
-          text: content,
-        },
-        {
-          type: "text",
-          text: `End line: ${endLine}`,
-        },
-        {
-          type: "text",
-          text: `Is ended: ${isEnded}`,
         },
       ],
     }
