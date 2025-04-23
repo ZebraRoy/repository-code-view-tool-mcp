@@ -20,6 +20,9 @@ importers:
       simple-git:
         specifier: ^3.27.0
         version: 3.27.0
+      tiktoken:
+        specifier: ^1.0.21
+        version: 1.0.21
       zod:
         specifier: ^3.24.3
         version: 3.24.3
@@ -1227,6 +1230,9 @@ packages:
   supports-color@7.2.0:
     resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
     engines: {node: '>=8'}
+
+  tiktoken@1.0.21:
+    resolution: {integrity: sha512-/kqtlepLMptX0OgbYD9aMYbM7EFrMZCL7EoHM8Psmg2FuhXoo/bH64KqOiZGGwa6oS9TPdSEDKBnV2LuB8+5vQ==}
 
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
@@ -2574,6 +2580,8 @@ snapshots:
   supports-color@7.2.0:
     dependencies:
       has-flag: 4.0.0
+
+  tiktoken@1.0.21: {}
 
   tinybench@2.9.0: {}
 

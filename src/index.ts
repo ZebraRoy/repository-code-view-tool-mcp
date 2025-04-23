@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod"
 import { listFiles, ListFilesMode } from "./utils/list-files.js"
+import { getFileContent } from "./utils/file-content.js"
 
 const server = new McpServer({
   name: "RepositoryCodeViewTool",
@@ -34,6 +35,37 @@ server.tool(
   },
 )
 
+server.tool(
+  "get-file-content",
+  "Get the content of a file in the repository.",
+  {
+    root: z.string().describe("The root directory of the repository"),
+    filePath: z.string().describe("The relative path to the file in the repository"),
+    token: z.number().describe("The maximum number of tokens to return of the final content"),
+    startLine: z.number().optional().describe("The start line of the content to return"),
+    isLastCommit: z.boolean().optional().describe("Whether to return the content of the last commit"),
+  },
+  async ({ root, filePath, token, startLine, isLastCommit }: { root: string, filePath: string, token: number, startLine?: number, isLastCommit?: boolean }) => {
+    const { content, endLine, isEnded } = await getFileContent(root, filePath, token, startLine, isLastCommit)
+    return {
+      content: [
+        {
+          type: "text",
+          text: content,
+        },
+        {
+          type: "text",
+          text: `End line: ${endLine}`,
+        },
+        {
+          type: "text",
+          text: `Is ended: ${isEnded}`,
+        },
+      ],
+    }
+  },
+)
+
 async function main() {
   const transport = new StdioServerTransport()
   await server.connect(transport)
@@ -55,3 +87,7 @@ main()
 // console.log("last-commit", files3)
 // const files4 = await listFiles("/Users/royng/Documents/GitHub/repository-code-view-tool-mcp", "glob", "**/*.ts")
 // console.log("glob", files4)
+
+// console.log("test getFileContent")
+// const content = await getFileContent("/Users/royng/Documents/GitHub/repository-code-view-tool-mcp", "src/index.ts", 5000, 0, true)
+// console.log(content)
