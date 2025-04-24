@@ -14,14 +14,6 @@ A Model Context Protocol (MCP) service to help AI agents manage and track code r
 - Automatic token count reset when resuming sessions
 - Built-in agent instructions accessible via tool
 
-## Installation
-
-```bash
-npm install -g review-toolkit-mcp
-# or
-pnpm add -g review-toolkit-mcp
-```
-
 ## Configuration
 
 The MCP supports the following command-line arguments:
