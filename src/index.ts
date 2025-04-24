@@ -79,13 +79,13 @@ server.tool(
   {
     projectRoot: z.string().describe("The root directory of the project"),
     files: z.array(z.string()).optional().describe("Array of file paths to review (optional)"),
-    tokenLimit: z.number().optional().describe("Maximum token limit for the session (default: 80000)"),
+    tokenLimit: z.number().optional().describe("Maximum token limit for the session (default: 10000)"),
     forceNew: z.boolean().optional().describe("Force creation of a new session even if one exists"),
   },
   async ({
     projectRoot,
     files,
-    tokenLimit = 80000,
+    tokenLimit = 10000,
     forceNew = false,
   }: {
     projectRoot: string

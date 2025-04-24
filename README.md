@@ -127,7 +127,7 @@ Parameters:
 
 - `projectRoot` (string): The root directory of the project
 - `files` (string[] | optional): Array of file paths to review
-- `tokenLimit` (number | optional): Maximum token limit for the session (default: 80000)
+- `tokenLimit` (number | optional): Maximum token limit for the session (default: 10000)
 - `forceNew` (boolean | optional): Force creation of a new session even if one exists
 
 ### get-review-status

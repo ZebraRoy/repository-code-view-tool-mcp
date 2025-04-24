@@ -91,7 +91,7 @@ export function getSessionIdForProject(projectFolder: string): string | null {
 export function createSession(
   projectFolder: string,
   files: string[],
-  tokenLimit: number = 80000,
+  tokenLimit: number = 10000,
 ): ReviewSession {
   const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
 
