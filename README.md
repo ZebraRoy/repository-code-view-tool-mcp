@@ -109,6 +109,60 @@ This MCP provides tools for AI agents to manage code review sessions. It support
 4. Generating reports
 5. Token management for context limits
 
+## Working with Agents
+
+### Preparation Before Starting a Review
+
+Before initiating a code review, consider these preparation steps:
+
+1. **Create Code Review Rules**
+
+   - Define specific rules tailored to your project's needs and code review format
+   - Examples:
+     - Code style and formatting standards
+     - Architecture and design principles
+     - Security requirements
+     - Performance considerations
+     - Documentation requirements
+
+2. **Import Manual Rules**
+   - If your project has existing manual rules or style guides, provide them to the agent
+   - These could be company-wide standards, framework-specific conventions, or project-specific guidelines
+
+### Example Prompts
+
+#### Starting a New Code Review
+
+```
+I'd like you to perform a code review on my project. Please use the review-toolkit MCP to:
+
+1. Start a new review session using the "glob" mode with the pattern "**/*.js" (or "changed" mode to review recent changes)
+2. Review each file methodically, checking for:
+   - Code quality and best practices
+   - Potential bugs or errors
+   - Security vulnerabilities
+   - Performance concerns
+   - Documentation completeness
+3. For each file, provide specific feedback with line references
+4. After reviewing all files, generate a comprehensive report
+
+Here are my project-specific code review rules to follow:
+[List your custom rules here]
+```
+
+#### Resuming an Existing Review
+
+```
+Let's continue the code review session that was started earlier. Please:
+
+1. Resume the existing review session for my project
+2. Continue reviewing the remaining files
+3. Apply the same review criteria we established earlier
+4. Generate a final report once all files have been reviewed
+
+If you encounter token limits, please let me know so we can start a new chat session while preserving the review progress.
+```
+
 ## Tools
 
 ### get-agent-instructions
