@@ -215,6 +215,63 @@ server.tool(
       }
     }
 
+    // Get the session to check token count
+    const session = getSession(sessionId)
+    if (!session) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              status: "error",
+              message: "Session not found",
+            }, null, 2),
+          },
+        ],
+      }
+    }
+
+    // Check if token limit is exceeded
+    if (session.currentSessionTokenCount > session.tokenLimit) {
+      // Check if there are any unreviewed files
+      const pendingFiles = session.files.filter(file => !file.reviewed).length
+
+      if (pendingFiles === 0) {
+        // All files have been reviewed
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                status: "token_limit_exceeded_all_reviewed",
+                message: "Token limit exceeded but all files have been reviewed. Please generate a final report.",
+                tokenCount: session.currentSessionTokenCount,
+                tokenLimit: session.tokenLimit,
+                pendingFiles: 0,
+              }, null, 2),
+            },
+          ],
+        }
+      }
+      else {
+        // Still have files to review
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                status: "token_limit_exceeded",
+                message: "Token limit exceeded with files still pending review. Please start a new CHAT session to continue.",
+                tokenCount: session.currentSessionTokenCount,
+                tokenLimit: session.tokenLimit,
+                pendingFiles: pendingFiles,
+              }, null, 2),
+            },
+          ],
+        }
+      }
+    }
+
     const nextFile = getNextFileToReview(sessionId)
 
     if (!nextFile) {
@@ -602,7 +659,30 @@ When asked to perform a code review, follow these steps:
    - DO NOT call 'complete-review-session' - this should only be used when all files are reviewed
    - Instead, inform the user that the token limit has been reached
    - Suggest the user to start a new chat session and resume the review there
-   - Explain that this will reset the token count for the current session while preserving progress`,
+   - Explain that this will reset the token count for the current session while preserving progress
+
+## Handling Token Limit Exceeded
+
+When calling \`get-next-review-file\`, check for the status in the response:
+
+- If status is "token_limit_exceeded", you MUST:
+  1. Stop the review process immediately
+  2. Display a clear warning to the user that the token limit has been exceeded but there are still files to review
+  3. Advise the user to start a new CHAT session (not a new review session) to continue reviewing the remaining files
+  4. Explain that starting a new chat session will reset the token count while preserving review progress
+  5. Do NOT attempt to review any more files in the current session
+  6. Do NOT call \`complete-review-session\` as the review is not actually complete
+
+- If status is "token_limit_exceeded_all_reviewed", you MUST:
+  1. Inform the user that all files have been reviewed but the token limit has been exceeded
+  2. Suggest generating a final report using \`generate-review-report\` to summarize all reviews
+  3. Proceed to generate the report if the user agrees
+
+Example warning for unfinished reviews:
+"⚠️ WARNING: Token limit exceeded for this review session with files still pending review. Please start a new CHAT session (not a new review session) to continue reviewing the remaining files. This will reset the token count while preserving your review progress."
+
+Example message for completed reviews:
+"✅ All files have been reviewed, but the token limit has been exceeded. Would you like me to generate a final report summarizing all the reviews?"`,
         },
       ],
     }
