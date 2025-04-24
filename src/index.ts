@@ -344,7 +344,7 @@ server.tool(
 
 server.tool(
   "complete-review-session",
-  "Mark a review session as completed",
+  "Mark a review session as completed. This should ONLY be called when all files have been properly reviewed, NOT when token limit is exceeded.",
   {
     key: z.string().describe("Session ID or project root path"),
   },
@@ -571,18 +571,19 @@ When asked to perform a code review, follow these steps:
 4. Read and analyze the file. Remember to use existing rules and guidelines of the project.
 5. Submit your review using \`submit-file-review\`, including both your detailed review and the user's feedback.
 6. Repeat steps 3-5 until all files have been reviewed.
-7. Complete the review session using \`complete-review-session\`.
+7. Complete the review session using \`complete-review-session\` ONLY when all files have been reviewed.
 8. Generate a final report using \`generate-review-report\`.
 
 ## Available Tools
 
 1. \`list-files\` - List files matching specific criteria (glob patterns, changed files, staged files).
 2. \`start-review-session\` - Initialize a new review session or resume an existing one. This should always be the first tool used when starting or resuming a review.
-3. \`get-next-review-file\` - Get the next file that needs to be reviewed.
-4. \`submit-file-review\` - Submit a review for a specific file.
-5. \`get-file-review\` - Retrieve the saved review for a specific file that has already been reviewed.
-6. \`complete-review-session\` - Mark a review session as completed.
-7. \`generate-review-report\` - Generate a comprehensive report of the review session.
+3. \`get-review-status\` - Check the current status of a review session.
+4. \`get-next-review-file\` - Get the next file that needs to be reviewed.
+5. \`submit-file-review\` - Submit a review for a specific file.
+6. \`get-file-review\` - Retrieve the saved review for a specific file that has already been reviewed.
+7. \`complete-review-session\` - Mark a review session as completed. ONLY call this when all files have been reviewed.
+8. \`generate-review-report\` - Generate a comprehensive report of the review session.
 
 ## Best Practices
 
@@ -597,7 +598,11 @@ When asked to perform a code review, follow these steps:
 3. Format your reviews in a clear, readable way using Markdown when appropriate.
 4. When the review is complete, provide a comprehensive summary with high-level observations.
 5. If you are unable to review a file, provide a clear explanation for why you cannot review it.
-6. Suggest the user to open new chat when token limit is reached.`,
+6. When token limit is exceeded:
+   - DO NOT call 'complete-review-session' - this should only be used when all files are reviewed
+   - Instead, inform the user that the token limit has been reached
+   - Suggest the user to start a new chat session and resume the review there
+   - Explain that this will reset the token count for the current session while preserving progress`,
         },
       ],
     }
