@@ -7,10 +7,12 @@ A Model Context Protocol (MCP) service to help AI agents manage and track code r
 - Start new review sessions or resume existing ones
 - Track files that need review
 - Track review status and feedback for each file
-- Generate review reports
-- Token counting to manage context limits (includes both file content and feedback)
+- Store both AI agent reviews and user feedback separately
+- Generate review reports including both agent and user feedback
+- Token counting to manage context limits (includes file content, agent reviews, and user feedback)
 - Persistent sessions stored in user's home directory
 - Automatic token count reset when resuming sessions
+- Built-in agent instructions accessible via tool
 
 ## Installation
 
@@ -109,6 +111,14 @@ This MCP provides tools for AI agents to manage code review sessions. It support
 
 ## Tools
 
+### get-agent-instructions
+
+Get detailed instructions for how agents should use the review toolkit MCP tools. This is typically the first tool that an agent should call when working with the review toolkit.
+
+Parameters:
+
+- None
+
 ### start-review-session
 
 Start a new code review session or resume an existing one. When resuming, token count is automatically reset.
@@ -138,13 +148,14 @@ Parameters:
 
 ### submit-file-review
 
-Submit a review for a file. The tool counts tokens for both the file content and the feedback.
+Submit a review for a file. The tool counts tokens for the file content, agent review, and user feedback.
 
 Parameters:
 
 - `key` (string): Session ID or project root path
 - `filePath` (string): The file path that was reviewed
-- `feedback` (string): The review feedback for the file
+- `agentReview` (string): The AI agent's review of the file
+- `feedback` (string): The user feedback for the file
 - `projectRoot` (string | optional): The project root directory (if different from key)
 
 ### complete-review-session
@@ -157,7 +168,7 @@ Parameters:
 
 ### generate-review-report
 
-Generate a report for a review session.
+Generate a report for a review session, including both agent reviews and user feedback.
 
 Parameters:
 
@@ -172,6 +183,12 @@ Parameters:
 - `root` (string): The root directory of the repository
 - `mode` (string): The mode for listing files: 'glob', 'changed', 'staged'
 - `glob` (string | optional): The glob pattern to match files against (required if mode is 'glob')
+
+## Agent Instructions
+
+Agents can access detailed instructions by calling the `get-agent-instructions` tool. This tool returns a comprehensive guide on how to use the review toolkit effectively, including workflow steps, tool usage examples, and best practices.
+
+See [AGENT-INSTRUCTIONS.md](./AGENT-INSTRUCTIONS.md) for the same documentation in markdown format.
 
 ## Session Persistence
 

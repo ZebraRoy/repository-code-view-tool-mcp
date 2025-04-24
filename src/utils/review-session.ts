@@ -7,6 +7,7 @@ export interface ReviewFile {
   path: string
   reviewed: boolean
   feedback: string
+  agentReview?: string
   tokenCount?: number
 }
 
@@ -149,6 +150,7 @@ export function updateFileReview(
   fileContent: string,
   reviewed: boolean,
   feedback: string,
+  agentReview?: string,
 ): ReviewSession | null {
   const session = getSession(sessionId)
 
@@ -165,10 +167,15 @@ export function updateFileReview(
   session.files[fileIndex].reviewed = reviewed
   session.files[fileIndex].feedback = feedback
 
+  if (agentReview) {
+    session.files[fileIndex].agentReview = agentReview
+  }
+
   // Calculate token count for the file content and feedback
   const fileTokens = countToken(fileContent)
   const feedbackTokens = countToken(feedback)
-  session.files[fileIndex].tokenCount = fileTokens + feedbackTokens
+  const agentReviewTokens = agentReview ? countToken(agentReview) : 0
+  session.files[fileIndex].tokenCount = fileTokens + feedbackTokens + agentReviewTokens
 
   // Update total token count
   session.totalTokenCount = session.files.reduce((sum, file) => sum + (file.tokenCount || 0), 0)
@@ -229,6 +236,13 @@ export function generateSessionReport(sessionId: string): string {
 
   for (const file of reviewedFiles) {
     report += `### ${file.path}\n\n`
+
+    if (file.agentReview) {
+      report += `#### AI Agent Review\n\n`
+      report += `${file.agentReview}\n\n`
+    }
+
+    report += `#### Feedback\n\n`
     report += `${file.feedback || "No feedback provided"}\n\n`
   }
 

@@ -315,17 +315,20 @@ server.tool(
     key: z.string().describe("Session ID or project root path"),
     filePath: z.string().describe("The file path that was reviewed"),
     feedback: z.string().describe("The review feedback for the file"),
+    agentReview: z.string().describe("The AI agent's review of the file"),
     projectRoot: z.string().optional().describe("The project root directory (if different from key)"),
   },
   async ({
     key,
     filePath,
     feedback,
+    agentReview,
     projectRoot,
   }: {
     key: string
     filePath: string
     feedback: string
+    agentReview: string
     projectRoot?: string
   }) => {
     let sessionId = key
@@ -364,7 +367,7 @@ server.tool(
       console.error(`Error reading file ${filePath}:`, error)
     }
 
-    const updatedSession = updateFileReview(sessionId, filePath, fileContent, true, feedback)
+    const updatedSession = updateFileReview(sessionId, filePath, fileContent, true, feedback, agentReview)
 
     if (!updatedSession) {
       return {
@@ -503,6 +506,142 @@ server.tool(
         {
           type: "text",
           text: report,
+        },
+      ],
+    }
+  },
+)
+
+server.tool(
+  "get-file-review",
+  "Get the saved review for a specific file",
+  {
+    key: z.string().describe("Session ID or project root path"),
+    filePath: z.string().describe("The file path to get the review for"),
+  },
+  async ({ key, filePath }: { key: string, filePath: string }) => {
+    let sessionId = key
+
+    // Check if key is a project root path
+    if (!getSession(key)) {
+      const existingSessionId = getSessionIdForProject(key)
+      if (existingSessionId) {
+        sessionId = existingSessionId
+      }
+      else {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                status: "error",
+                message: "No session found for the provided key",
+              }, null, 2),
+            },
+          ],
+        }
+      }
+    }
+
+    const session = getSession(sessionId)
+
+    if (!session) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              status: "error",
+              message: "Session not found",
+            }, null, 2),
+          },
+        ],
+      }
+    }
+
+    const fileInfo = session.files.find(f => f.path === filePath)
+
+    if (!fileInfo) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              status: "error",
+              message: "File not found in session",
+            }, null, 2),
+          },
+        ],
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify({
+            status: "success",
+            filePath: fileInfo.path,
+            reviewed: fileInfo.reviewed,
+            feedback: fileInfo.feedback || "",
+            agentReview: fileInfo.agentReview || "",
+          }, null, 2),
+        },
+      ],
+    }
+  },
+)
+
+server.tool(
+  "get-agent-instructions",
+  "Get detailed instructions for how agents should use the review toolkit MCP tools",
+  {},
+  async () => {
+    // Return the instructions for how agents should use the toolkit
+    return {
+      content: [
+        {
+          type: "text",
+          text: `# Instructions for AI Agents Using Review Toolkit
+
+## Workflow
+
+When asked to perform a code review, follow these steps:
+
+1. Get files to review using \`get-files-to-review\`.
+2. Start a review session using \`start-review-session\` to initialize a new review session or resume an existing one.
+3. Request the next file to review using \`get-next-review-file\`.
+4. Read and analyze the file.
+5. Submit your review using \`submit-file-review\`, including both your detailed review and the user's feedback.
+6. Repeat steps 3-5 until all files have been reviewed.
+7. Complete the review session using \`complete-review-session\`.
+8. Generate a final report using \`generate-review-report\`.
+
+## Available Tools
+
+1. \`list-files\` - List files matching specific criteria (glob patterns, changed files, staged files).
+2. \`start-review-session\` - Initialize a new review session or resume an existing one.
+3. \`get-review-status\` - Check the current status of a review session.
+4. \`get-next-review-file\` - Get the next file that needs to be reviewed.
+5. \`submit-file-review\` - Submit a review for a specific file.
+6. \`get-file-review\` - Retrieve the saved review for a specific file that has already been reviewed.
+7. \`complete-review-session\` - Mark a review session as completed.
+8. \`generate-review-report\` - Generate a comprehensive report of the review session.
+
+## Best Practices
+
+1. Always provide both your detailed review analysis and a summary of the user's feedback when submitting reviews.
+2. When analyzing files, consider:
+   - Code quality and structure
+   - Potential bugs or issues
+   - Performance considerations
+   - Security vulnerabilities
+   - Adherence to best practices
+   - Documentation completeness
+3. Format your reviews in a clear, readable way using Markdown when appropriate.
+4. When the review is complete, provide a comprehensive summary with high-level observations.
+5. If you are unable to review a file, provide a clear explanation for why you cannot review it.
+6. Suggest the user to open new chat when token limit is reached.`,
         },
       ],
     }
