@@ -75,7 +75,7 @@ server.tool(
 
 server.tool(
   "start-review-session",
-  "Start a new code review session or resume an existing one",
+  "Start a new code review session or resume an existing one. This should be the first tool called when starting or resuming a review process.",
   {
     projectRoot: z.string().describe("The root directory of the project"),
     files: z.array(z.string()).optional().describe("Array of file paths to review (optional)"),
@@ -107,6 +107,8 @@ server.tool(
           session = resetSessionTokenCount(existingSessionId)
 
           if (session) {
+            const reviewedFiles = session.files.filter(f => f.reviewed)
+
             return {
               content: [
                 {
@@ -116,9 +118,13 @@ server.tool(
                     sessionId: session.id,
                     projectFolder: session.projectFolder,
                     filesCount: session.files.length,
-                    reviewedCount: session.files.filter(f => f.reviewed).length,
+                    reviewedCount: reviewedFiles.length,
+                    pendingCount: session.files.length - reviewedFiles.length,
                     tokenCount: session.currentSessionTokenCount,
                     tokenLimit: session.tokenLimit,
+                    completed: session.completed,
+                    createdAt: session.createdAt,
+                    updatedAt: session.updatedAt,
                   }, null, 2),
                 },
               ],
@@ -172,77 +178,6 @@ server.tool(
             projectFolder: session.projectFolder,
             filesCount: session.files.length,
             tokenLimit: session.tokenLimit,
-          }, null, 2),
-        },
-      ],
-    }
-  },
-)
-
-server.tool(
-  "get-review-status",
-  "Get the status of a review session",
-  {
-    key: z.string().describe("Session ID or project root path"),
-  },
-  async ({ key }: { key: string }) => {
-    let sessionId = key
-
-    // Check if key is a project root path
-    if (!getSession(key)) {
-      const existingSessionId = getSessionIdForProject(key)
-      if (existingSessionId) {
-        sessionId = existingSessionId
-      }
-      else {
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                status: "error",
-                message: "No session found for the provided key",
-              }, null, 2),
-            },
-          ],
-        }
-      }
-    }
-
-    const session = getSession(sessionId)
-
-    if (!session) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              status: "error",
-              message: "Session not found",
-            }, null, 2),
-          },
-        ],
-      }
-    }
-
-    const reviewedFiles = session.files.filter(f => f.reviewed)
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify({
-            status: "success",
-            sessionId: session.id,
-            projectFolder: session.projectFolder,
-            filesCount: session.files.length,
-            reviewedCount: reviewedFiles.length,
-            pendingCount: session.files.length - reviewedFiles.length,
-            tokenCount: session.currentSessionTokenCount,
-            tokenLimit: session.tokenLimit,
-            completed: session.completed,
-            createdAt: session.createdAt,
-            updatedAt: session.updatedAt,
           }, null, 2),
         },
       ],
@@ -630,8 +565,8 @@ server.tool(
 
 When asked to perform a code review, follow these steps:
 
-1. Get files to review using \`get-files-to-review\`.
-2. Start a review session using \`start-review-session\` to initialize a new review session or resume an existing one.
+1. Get files to review using \`list-files\`.
+2. Start a review session using \`start-review-session\` to initialize a new review session or resume an existing one. Always use this tool first when starting or resuming a review.
 3. Request the next file to review using \`get-next-review-file\`.
 4. Read and analyze the file. Remember to use existing rules and guidelines of the project.
 5. Submit your review using \`submit-file-review\`, including both your detailed review and the user's feedback.
@@ -642,13 +577,12 @@ When asked to perform a code review, follow these steps:
 ## Available Tools
 
 1. \`list-files\` - List files matching specific criteria (glob patterns, changed files, staged files).
-2. \`start-review-session\` - Initialize a new review session or resume an existing one.
-3. \`get-review-status\` - Check the current status of a review session.
-4. \`get-next-review-file\` - Get the next file that needs to be reviewed.
-5. \`submit-file-review\` - Submit a review for a specific file.
-6. \`get-file-review\` - Retrieve the saved review for a specific file that has already been reviewed.
-7. \`complete-review-session\` - Mark a review session as completed.
-8. \`generate-review-report\` - Generate a comprehensive report of the review session.
+2. \`start-review-session\` - Initialize a new review session or resume an existing one. This should always be the first tool used when starting or resuming a review.
+3. \`get-next-review-file\` - Get the next file that needs to be reviewed.
+4. \`submit-file-review\` - Submit a review for a specific file.
+5. \`get-file-review\` - Retrieve the saved review for a specific file that has already been reviewed.
+6. \`complete-review-session\` - Mark a review session as completed.
+7. \`generate-review-report\` - Generate a comprehensive report of the review session.
 
 ## Best Practices
 

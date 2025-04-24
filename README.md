@@ -121,7 +121,7 @@ Parameters:
 
 ### start-review-session
 
-Start a new code review session or resume an existing one. When resuming, token count is automatically reset.
+Start a new code review session or resume an existing one. This should be the first tool called when starting or resuming a review process. When resuming, token count is automatically reset.
 
 Parameters:
 
@@ -129,14 +129,6 @@ Parameters:
 - `files` (string[] | optional): Array of file paths to review
 - `tokenLimit` (number | optional): Maximum token limit for the session (default: 10000)
 - `forceNew` (boolean | optional): Force creation of a new session even if one exists
-
-### get-review-status
-
-Get the status of a review session.
-
-Parameters:
-
-- `key` (string): Session ID or project root path
 
 ### get-next-review-file
 
@@ -183,12 +175,6 @@ Parameters:
 - `root` (string): The root directory of the repository
 - `mode` (string): The mode for listing files: 'glob', 'changed', 'staged'
 - `glob` (string | optional): The glob pattern to match files against (required if mode is 'glob')
-
-## Agent Instructions
-
-Agents can access detailed instructions by calling the `get-agent-instructions` tool. This tool returns a comprehensive guide on how to use the review toolkit effectively, including workflow steps, tool usage examples, and best practices.
-
-See [AGENT-INSTRUCTIONS.md](./AGENT-INSTRUCTIONS.md) for the same documentation in markdown format.
 
 ## Session Persistence
 
