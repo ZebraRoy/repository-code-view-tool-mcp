@@ -21,6 +21,18 @@ function filterEmptyFile(file: string) {
   return file.trim() !== ""
 }
 
+// filter out directories, keep only files
+function filterDirectories(file: string, root: string) {
+  const fullPath = path.resolve(root, file)
+  try {
+    return fs.statSync(fullPath).isFile()
+  }
+  catch (_error) {
+    // If we can't access the file, skip it
+    return false
+  }
+}
+
 let ig: ReturnType<typeof ignore> | null = null
 let igRoot: string | null = null
 function getIgnoreInstance(root: string) {
@@ -43,7 +55,11 @@ function normalizeFilePath(files: string[], root?: string) {
     .filter(filterBinaryFile)
     .filter(filterUnique)
     .filter(filterEmptyFile)
+
   if (root) {
+    // Filter out directories
+    filtered = filtered.filter(file => filterDirectories(file, root))
+
     const ig = getIgnoreInstance(root)
     filtered = ig.filter(filtered)
   }
