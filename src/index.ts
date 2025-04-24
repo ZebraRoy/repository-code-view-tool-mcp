@@ -11,9 +11,9 @@ import {
   updateFileReview,
   getNextFileToReview,
   completeSession,
-  generateSessionReport,
   resetSessionTokenCount,
   setSessionsDirectory,
+  saveSessionReport,
 } from "./utils/review-session.js"
 import fs from "fs"
 import path from "path"
@@ -501,15 +501,35 @@ server.tool(
       }
     }
 
-    const report = generateSessionReport(sessionId)
+    try {
+      const reportPath = saveSessionReport(sessionId)
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: report,
-        },
-      ],
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              status: "success",
+              reportPath,
+              message: "Report generated successfully",
+            }, null, 2),
+          },
+        ],
+      }
+    }
+    catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              status: "error",
+              message: `Failed to generate report: ${errorMessage}`,
+            }, null, 2),
+          },
+        ],
+      }
     }
   },
 )

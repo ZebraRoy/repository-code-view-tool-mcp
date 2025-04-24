@@ -263,6 +263,23 @@ export function generateSessionReport(sessionId: string): string {
   return report
 }
 
+// Save report to file and return the file path
+export function saveSessionReport(sessionId: string): string {
+  const session = getSession(sessionId)
+
+  if (!session) {
+    throw new Error("Session not found")
+  }
+
+  const report = generateSessionReport(sessionId)
+  const reportFileName = `report_${session.id}.md`
+  const reportFilePath = path.join(SESSIONS_DIR, reportFileName)
+
+  fs.writeFileSync(reportFilePath, report, "utf8")
+
+  return reportFilePath
+}
+
 // Reset token count when resuming a session
 // This function should be called when a session is resumed in a new chat session
 // as it resets the token usage counter back to 0
