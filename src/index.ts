@@ -611,7 +611,7 @@ When asked to perform a code review, follow these steps:
 1. Get files to review using \`get-files-to-review\`.
 2. Start a review session using \`start-review-session\` to initialize a new review session or resume an existing one.
 3. Request the next file to review using \`get-next-review-file\`.
-4. Read and analyze the file.
+4. Read and analyze the file. Remember to use existing rules and guidelines of the project.
 5. Submit your review using \`submit-file-review\`, including both your detailed review and the user's feedback.
 6. Repeat steps 3-5 until all files have been reviewed.
 7. Complete the review session using \`complete-review-session\`.
