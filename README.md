@@ -126,7 +126,9 @@ Start a new code review session or resume an existing one. This should be the fi
 Parameters:
 
 - `projectRoot` (string): The root directory of the project
-- `files` (string[] | optional): Array of file paths to review
+- `mode` (string): The mode for listing files: 'glob', 'changed', 'staged', or 'resume' to resume an existing session
+- `glob` (string | optional): The glob pattern to match files against (required if mode is 'glob')
+- `files` (string[] | optional): Array of file paths to review (overrides mode if provided)
 - `tokenLimit` (number | optional): Maximum token limit for the session (default: 10000)
 - `forceNew` (boolean | optional): Force creation of a new session even if one exists
 
@@ -165,16 +167,6 @@ Generate a report for a review session, including both agent reviews and user fe
 Parameters:
 
 - `key` (string): Session ID or project root path
-
-### list-files
-
-List all files in the repository that match the given condition.
-
-Parameters:
-
-- `root` (string): The root directory of the repository
-- `mode` (string): The mode for listing files: 'glob', 'changed', 'staged'
-- `glob` (string | optional): The glob pattern to match files against (required if mode is 'glob')
 
 ## Session Persistence
 

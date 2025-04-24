@@ -53,50 +53,88 @@ const server = new McpServer({
 })
 
 server.tool(
-  "list-files",
-  "List all files in the repository that match the given condition. We support glob pattern, all changed files, all staged files",
-  {
-    root: z.string().describe("The root directory of the repository"),
-    mode: z.enum(["glob", "changed", "staged"]).describe("The mode for listing files: 'glob', 'changed', 'staged'"),
-    glob: z.string().optional().describe("The glob pattern to match files against (required if mode is 'glob')"),
-  },
-  async ({ root, mode, glob }: { root: string, mode: ListFilesMode, glob?: string }) => {
-    const files = await listFiles(root, mode, glob)
-    return {
-      content: [
-        {
-          type: "text",
-          text: files.join("\n"),
-        },
-      ],
-    }
-  },
-)
-
-server.tool(
   "start-review-session",
   "Start a new code review session or resume an existing one. This should be the first tool called when starting or resuming a review process.",
   {
     projectRoot: z.string().describe("The root directory of the project"),
-    files: z.array(z.string()).optional().describe("Array of file paths to review (optional)"),
+    mode: z.enum(["glob", "changed", "staged", "resume"]).describe("The mode for listing files: 'glob', 'changed', 'staged', or 'resume' to resume existing session"),
+    glob: z.string().optional().describe("The glob pattern to match files against (required if mode is 'glob')"),
+    files: z.array(z.string()).optional().describe("Array of file paths to review (optional, overrides mode if provided)"),
     tokenLimit: z.number().optional().describe("Maximum token limit for the session (default: 10000)"),
     forceNew: z.boolean().optional().describe("Force creation of a new session even if one exists"),
   },
   async ({
     projectRoot,
+    mode,
+    glob,
     files,
     tokenLimit = 10000,
     forceNew = false,
   }: {
     projectRoot: string
+    mode: ListFilesMode | "resume"
+    glob?: string
     files?: string[]
     tokenLimit?: number
     forceNew?: boolean
   }) => {
     let session
 
-    // Check for existing session unless forceNew is true
-    if (!forceNew) {
+    // Handle resume mode
+    if (mode === "resume" && !forceNew) {
+      const existingSessionId = getSessionIdForProject(projectRoot)
+      if (existingSessionId) {
+        const existingSession = getSession(existingSessionId)
+        if (existingSession && !existingSession.completed) {
+          // Reset token count for the session when resuming
+          // This is because resuming a session means a new chat session has been created
+          // and token usage should be reset to 0 for the new chat context
+          session = resetSessionTokenCount(existingSessionId)
+
+          if (session) {
+            const reviewedFiles = session.files.filter(f => f.reviewed)
+
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    status: "resumed",
+                    sessionId: session.id,
+                    projectFolder: session.projectFolder,
+                    filesCount: session.files.length,
+                    reviewedCount: reviewedFiles.length,
+                    pendingCount: session.files.length - reviewedFiles.length,
+                    tokenCount: session.currentSessionTokenCount,
+                    tokenLimit: session.tokenLimit,
+                    completed: session.completed,
+                    createdAt: session.createdAt,
+                    updatedAt: session.updatedAt,
+                  }, null, 2),
+                },
+              ],
+            }
+          }
+          else {
+            // Handle the rare case where the session couldn't be reset
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    status: "error",
+                    message: "Failed to reset session token count",
+                  }, null, 2),
+                },
+              ],
+            }
+          }
+        }
+      }
+    }
+
+    // Check for existing session unless forceNew is true or we're in a mode other than resume
+    if (!forceNew && mode !== "resume") {
       const existingSessionId = getSessionIdForProject(projectRoot)
       if (existingSessionId) {
         const existingSession = getSession(existingSessionId)
@@ -150,16 +188,69 @@ server.tool(
 
     // If no existing session or forceNew is true, create a new session
     if (!files || files.length === 0) {
-      // If no files provided, list all files in the project
+      // If no files provided, list files according to the specified mode
       try {
-        files = await listFiles(projectRoot, "glob", "**/*.*")
+        if (mode === "glob") {
+          if (!glob) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    status: "error",
+                    message: "Glob pattern is required when mode is 'glob'",
+                  }, null, 2),
+                },
+              ],
+            }
+          }
+          files = await listFiles(projectRoot, "glob", glob)
+        }
+        else if (mode === "changed") {
+          files = await listFiles(projectRoot, "changed")
+        }
+        else if (mode === "staged") {
+          files = await listFiles(projectRoot, "staged")
+        }
+        else if (mode === "resume") {
+          // If we're here, it means no session was found to resume
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  status: "error",
+                  message: "No session found to resume for the provided project root",
+                }, null, 2),
+              },
+            ],
+          }
+        }
       }
       catch (error) {
         return {
           content: [
             {
               type: "text",
-              text: `Error listing files: ${error}`,
+              text: JSON.stringify({
+                status: "error",
+                message: `Error listing files: ${error}`,
+              }, null, 2),
+            },
+          ],
+        }
+      }
+
+      // Ensure files is never undefined
+      if (!files || files.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                status: "error",
+                message: "No files found to review. Please check your glob pattern or repository state.",
+              }, null, 2),
             },
           ],
         }
@@ -429,8 +520,8 @@ server.tool(
       }
     }
 
-    const session = completeSession(sessionId)
-
+    // Get session to check if all files are reviewed
+    const session = getSession(sessionId)
     if (!session) {
       return {
         content: [
@@ -445,17 +536,52 @@ server.tool(
       }
     }
 
+    // Check if all files have been reviewed
+    const pendingFiles = session.files.filter(f => !f.reviewed).length
+    if (pendingFiles > 0) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              status: "error",
+              message: `Cannot complete session: ${pendingFiles} files still need to be reviewed`,
+              reviewedCount: session.files.filter(f => f.reviewed).length,
+              pendingCount: pendingFiles,
+              totalFiles: session.files.length,
+            }, null, 2),
+          },
+        ],
+      }
+    }
+
+    const completedSession = completeSession(sessionId)
+
+    if (!completedSession) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              status: "error",
+              message: "Failed to complete session",
+            }, null, 2),
+          },
+        ],
+      }
+    }
+
     return {
       content: [
         {
           type: "text",
           text: JSON.stringify({
             status: "success",
-            sessionId: session.id,
+            sessionId: completedSession.id,
             completed: true,
-            reviewedCount: session.files.filter(f => f.reviewed).length,
-            pendingCount: session.files.filter(f => !f.reviewed).length,
-            tokenCount: session.currentSessionTokenCount,
+            reviewedCount: completedSession.files.filter(f => f.reviewed).length,
+            pendingCount: completedSession.files.filter(f => !f.reviewed).length,
+            tokenCount: completedSession.currentSessionTokenCount,
           }, null, 2),
         },
       ],
@@ -622,25 +748,28 @@ server.tool(
 
 When asked to perform a code review, follow these steps:
 
-1. Get files to review using \`list-files\`.
-2. Start a review session using \`start-review-session\` to initialize a new review session or resume an existing one. Always use this tool first when starting or resuming a review.
-3. Request the next file to review using \`get-next-review-file\`.
-4. Read and analyze the file. Remember to use existing rules and guidelines of the project.
-5. Submit your review using \`submit-file-review\`, including both your detailed review and the user's feedback.
-6. Repeat steps 3-5 until all files have been reviewed.
-7. Complete the review session using \`complete-review-session\` ONLY when all files have been reviewed.
-8. Generate a final report using \`generate-review-report\`.
+1. Start a review session using \`start-review-session\` with the appropriate mode to initialize a new review session or resume an existing one.
+2. Request the next file to review using \`get-next-review-file\`.
+3. Read and analyze the file. Remember to use existing rules and guidelines of the project.
+4. Submit your review using \`submit-file-review\`, including both your detailed review and the user's feedback.
+5. Repeat steps 2-4 until all files have been reviewed.
+6. Complete the review session using \`complete-review-session\` ONLY when all files have been reviewed.
+7. Generate a final report using \`generate-review-report\`.
 
 ## Available Tools
 
-1. \`list-files\` - List files matching specific criteria (glob patterns, changed files, staged files).
-2. \`start-review-session\` - Initialize a new review session or resume an existing one. This should always be the first tool used when starting or resuming a review.
-3. \`get-review-status\` - Check the current status of a review session.
-4. \`get-next-review-file\` - Get the next file that needs to be reviewed.
-5. \`submit-file-review\` - Submit a review for a specific file.
-6. \`get-file-review\` - Retrieve the saved review for a specific file that has already been reviewed.
-7. \`complete-review-session\` - Mark a review session as completed. ONLY call this when all files have been reviewed.
-8. \`generate-review-report\` - Generate a comprehensive report of the review session.
+1. \`start-review-session\` - Initialize a new review session or resume an existing one. Use this as the first tool when starting a code review.
+   - Modes:
+     - \`glob\`: Review files matching a glob pattern (requires glob parameter)
+     - \`changed\`: Review all changed files in the repository
+     - \`staged\`: Review all staged files in the repository
+     - \`resume\`: Resume an existing review session
+2. \`get-review-status\` - Check the current status of a review session.
+3. \`get-next-review-file\` - Get the next file that needs to be reviewed.
+4. \`submit-file-review\` - Submit a review for a specific file.
+5. \`get-file-review\` - Retrieve the saved review for a specific file that has already been reviewed.
+6. \`complete-review-session\` - Mark a review session as completed. ONLY call this when all files have been reviewed.
+7. \`generate-review-report\` - Generate a comprehensive report of the review session.
 
 ## Best Practices
 
