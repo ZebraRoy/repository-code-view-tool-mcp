@@ -18,6 +18,7 @@ export interface ReviewSession {
   createdAt: string
   updatedAt: string
   totalTokenCount: number
+  currentSessionTokenCount: number
   tokenLimit: number
   completed: boolean
 }
@@ -108,6 +109,7 @@ export function createSession(
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     totalTokenCount: 0,
+    currentSessionTokenCount: 0,
     tokenLimit,
     completed: false,
   }
@@ -175,10 +177,14 @@ export function updateFileReview(
   const fileTokens = countToken(fileContent)
   const feedbackTokens = countToken(feedback)
   const agentReviewTokens = agentReview ? countToken(agentReview) : 0
-  session.files[fileIndex].tokenCount = fileTokens + feedbackTokens + agentReviewTokens
+  const currentFileTokens = fileTokens + feedbackTokens + agentReviewTokens
+  session.files[fileIndex].tokenCount = currentFileTokens
 
-  // Update total token count
+  // Update total token count for all files
   session.totalTokenCount = session.files.reduce((sum, file) => sum + (file.tokenCount || 0), 0)
+
+  // Add current file's tokens to the current session token count
+  session.currentSessionTokenCount += currentFileTokens
 
   saveSession(session)
   return session
@@ -230,7 +236,8 @@ export function generateSessionReport(sessionId: string): string {
   report += `- Total Files: ${session.files.length}\n`
   report += `- Reviewed Files: ${reviewedFiles.length}\n`
   report += `- Pending Files: ${pendingFiles.length}\n`
-  report += `- Token Count: ${session.totalTokenCount}/${session.tokenLimit}\n\n`
+  report += `- Current Session Token Count: ${session.currentSessionTokenCount}/${session.tokenLimit}\n`
+  report += `- Total Token Count (across all sessions): ${session.totalTokenCount}\n\n`
 
   report += `## Reviewed Files\n\n`
 
@@ -257,6 +264,8 @@ export function generateSessionReport(sessionId: string): string {
 }
 
 // Reset token count when resuming a session
+// This function should be called when a session is resumed in a new chat session
+// as it resets the token usage counter back to 0
 export function resetSessionTokenCount(sessionId: string): ReviewSession | null {
   const session = getSession(sessionId)
 
@@ -264,13 +273,9 @@ export function resetSessionTokenCount(sessionId: string): ReviewSession | null 
     return null
   }
 
-  // Reset the token count for each file
-  session.files.forEach((file) => {
-    file.tokenCount = 0
-  })
-
-  // Reset the total token count
-  session.totalTokenCount = 0
+  // Only reset the current session token count
+  // The total token count is preserved as it tracks usage across all sessions
+  session.currentSessionTokenCount = 0
 
   saveSession(session)
   return session

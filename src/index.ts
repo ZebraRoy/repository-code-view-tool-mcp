@@ -101,7 +101,9 @@ server.tool(
       if (existingSessionId) {
         const existingSession = getSession(existingSessionId)
         if (existingSession && !existingSession.completed) {
-          // Reset token count for the session
+          // Reset token count for the session when resuming
+          // This is because resuming a session means a new chat session has been created
+          // and token usage should be reset to 0 for the new chat context
           session = resetSessionTokenCount(existingSessionId)
 
           if (session) {
@@ -115,7 +117,7 @@ server.tool(
                     projectFolder: session.projectFolder,
                     filesCount: session.files.length,
                     reviewedCount: session.files.filter(f => f.reviewed).length,
-                    tokenCount: session.totalTokenCount,
+                    tokenCount: session.currentSessionTokenCount,
                     tokenLimit: session.tokenLimit,
                   }, null, 2),
                 },
@@ -236,7 +238,7 @@ server.tool(
             filesCount: session.files.length,
             reviewedCount: reviewedFiles.length,
             pendingCount: session.files.length - reviewedFiles.length,
-            tokenCount: session.totalTokenCount,
+            tokenCount: session.currentSessionTokenCount,
             tokenLimit: session.tokenLimit,
             completed: session.completed,
             createdAt: session.createdAt,
@@ -383,7 +385,7 @@ server.tool(
       }
     }
 
-    const exceedsTokenLimit = updatedSession.totalTokenCount > updatedSession.tokenLimit
+    const exceedsTokenLimit = updatedSession.currentSessionTokenCount > updatedSession.tokenLimit
 
     return {
       content: [
@@ -395,7 +397,7 @@ server.tool(
             filePath,
             reviewedCount: updatedSession.files.filter(f => f.reviewed).length,
             pendingCount: updatedSession.files.filter(f => !f.reviewed).length,
-            tokenCount: updatedSession.totalTokenCount,
+            tokenCount: updatedSession.currentSessionTokenCount,
             tokenLimit: updatedSession.tokenLimit,
             exceedsTokenLimit,
           }, null, 2),
@@ -461,7 +463,7 @@ server.tool(
             completed: true,
             reviewedCount: session.files.filter(f => f.reviewed).length,
             pendingCount: session.files.filter(f => !f.reviewed).length,
-            tokenCount: session.totalTokenCount,
+            tokenCount: session.currentSessionTokenCount,
           }, null, 2),
         },
       ],
