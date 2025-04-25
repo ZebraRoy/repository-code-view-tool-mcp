@@ -6,8 +6,7 @@ import { countToken } from "./count-token.js"
 export interface ReviewFile {
   path: string
   reviewed: boolean
-  feedback: string
-  agentReview?: string
+  agentReview: string
   tokenCount?: number
 }
 
@@ -99,7 +98,7 @@ export function createSession(
   const reviewFiles: ReviewFile[] = files.map(file => ({
     path: file,
     reviewed: false,
-    feedback: "",
+    agentReview: "",
   }))
 
   const session: ReviewSession = {
@@ -145,14 +144,13 @@ export function getSession(sessionId: string): ReviewSession | null {
   }
 }
 
-// Update file review status and feedback
+// Update file review status and agent review
 export function updateFileReview(
   sessionId: string,
   filePath: string,
   fileContent: string,
   reviewed: boolean,
-  feedback: string,
-  agentReview?: string,
+  agentReview: string,
 ): ReviewSession | null {
   const session = getSession(sessionId)
 
@@ -167,17 +165,12 @@ export function updateFileReview(
   }
 
   session.files[fileIndex].reviewed = reviewed
-  session.files[fileIndex].feedback = feedback
+  session.files[fileIndex].agentReview = agentReview
 
-  if (agentReview) {
-    session.files[fileIndex].agentReview = agentReview
-  }
-
-  // Calculate token count for the file content and feedback
+  // Calculate token count for the file content and review
   const fileTokens = countToken(fileContent)
-  const feedbackTokens = countToken(feedback)
-  const agentReviewTokens = agentReview ? countToken(agentReview) : 0
-  const currentFileTokens = fileTokens + feedbackTokens + agentReviewTokens
+  const agentReviewTokens = countToken(agentReview)
+  const currentFileTokens = fileTokens + agentReviewTokens
   session.files[fileIndex].tokenCount = currentFileTokens
 
   // Update total token count for all files
@@ -243,14 +236,8 @@ export function generateSessionReport(sessionId: string): string {
 
   for (const file of reviewedFiles) {
     report += `### ${file.path}\n\n`
-
-    if (file.agentReview) {
-      report += `#### AI Agent Review\n\n`
-      report += `${file.agentReview}\n\n`
-    }
-
-    report += `#### Feedback\n\n`
-    report += `${file.feedback || "No feedback provided"}\n\n`
+    report += `#### AI Agent Review\n\n`
+    report += `${file.agentReview}\n\n`
   }
 
   if (pendingFiles.length > 0) {

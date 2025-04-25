@@ -6,10 +6,10 @@ A Model Context Protocol (MCP) service to help AI agents manage and track code r
 
 - Start new review sessions or resume existing ones
 - Track files that need review
-- Track review status and feedback for each file
-- Store both AI agent reviews and user feedback separately
-- Generate review reports including both agent and user feedback
-- Token counting to manage context limits (includes file content, agent reviews, and user feedback)
+- Track review status for each file
+- Store AI agent reviews for each file
+- Generate review reports including agent reviews
+- Token counting to manage context limits (includes file content and agent reviews)
 - Persistent sessions stored in user's home directory
 - Automatic token count reset when resuming sessions
 - Built-in agent instructions accessible via tool
@@ -97,7 +97,7 @@ This MCP provides tools for AI agents to manage code review sessions. It support
 
 1. Starting/resuming review sessions
 2. Tracking review progress
-3. Managing feedback for each file
+3. Managing agent reviews for each file
 4. Generating reports
 5. Token management for context limits
 
@@ -188,14 +188,13 @@ Parameters:
 
 ### submit-file-review
 
-Submit a review for a file. The tool counts tokens for the file content, agent review, and user feedback.
+Submit a review for a file. The tool counts tokens for the file content and agent review.
 
 Parameters:
 
 - `key` (string): Session ID or project root path
 - `filePath` (string): The file path that was reviewed
 - `agentReview` (string): The AI agent's review of the file
-- `feedback` (string): The user feedback for the file
 - `projectRoot` (string | optional): The project root directory (if different from key)
 
 ### complete-review-session
@@ -208,7 +207,7 @@ Parameters:
 
 ### generate-review-report
 
-Generate a report for a review session, including both agent reviews and user feedback.
+Generate a report for a review session, including agent reviews.
 
 Parameters:
 

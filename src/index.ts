@@ -399,20 +399,17 @@ server.tool(
   {
     key: z.string().describe("Session ID or project root path"),
     filePath: z.string().describe("The file path that was reviewed"),
-    feedback: z.string().describe("The review feedback for the file"),
     agentReview: z.string().describe("The AI agent's review of the file"),
     projectRoot: z.string().optional().describe("The project root directory (if different from key)"),
   },
   async ({
     key,
     filePath,
-    feedback,
     agentReview,
     projectRoot,
   }: {
     key: string
     filePath: string
-    feedback: string
     agentReview: string
     projectRoot?: string
   }) => {
@@ -452,7 +449,7 @@ server.tool(
       console.error(`Error reading file ${filePath}:`, error)
     }
 
-    const updatedSession = updateFileReview(sessionId, filePath, fileContent, true, feedback, agentReview)
+    const updatedSession = updateFileReview(sessionId, filePath, fileContent, true, agentReview)
 
     if (!updatedSession) {
       return {
@@ -723,7 +720,6 @@ server.tool(
             status: "success",
             filePath: fileInfo.path,
             reviewed: fileInfo.reviewed,
-            feedback: fileInfo.feedback || "",
             agentReview: fileInfo.agentReview || "",
           }, null, 2),
         },
@@ -751,7 +747,7 @@ When asked to perform a code review, follow these steps:
 1. Start a review session using \`start-review-session\` with the appropriate mode to initialize a new review session or resume an existing one.
 2. Request the next file to review using \`get-next-review-file\`.
 3. Read and analyze the file. Remember to use existing rules and guidelines of the project.
-4. Submit your review using \`submit-file-review\`, including both your detailed review and the user's feedback.
+4. Submit your review using \`submit-file-review\`, providing your detailed analysis.
 5. Repeat steps 2-4 until all files have been reviewed.
 6. Complete the review session using \`complete-review-session\` ONLY when all files have been reviewed.
 7. Generate a final report using \`generate-review-report\`.
@@ -773,7 +769,7 @@ When asked to perform a code review, follow these steps:
 
 ## Best Practices
 
-1. Always provide both your detailed review analysis and a summary of the user's feedback when submitting reviews.
+1. Provide a detailed and thorough review analysis when submitting reviews.
 2. When analyzing files, consider:
    - Code quality and structure
    - Potential bugs or issues
