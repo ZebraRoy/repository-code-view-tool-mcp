@@ -56,7 +56,7 @@ server.tool(
   "start-review-session",
   "Start a new code review session or resume an existing one. This should be the first tool called when starting or resuming a review process.",
   {
-    projectRoot: z.string().describe("The root directory of the project"),
+    projectRoot: z.string().describe("The absolute path to the root directory of the project"),
     mode: z.enum(["glob", "changed", "staged", "resume"]).describe("The mode for listing files: 'glob', 'changed', 'staged', or 'resume' to resume existing session"),
     glob: z.string().optional().describe("The glob pattern to match files against (required if mode is 'glob')"),
     files: z.array(z.string()).optional().describe("Array of file paths to review (optional, overrides mode if provided)"),
